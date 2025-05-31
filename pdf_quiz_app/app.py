@@ -1,95 +1,63 @@
 import streamlit as st
+import openai
+import os
+from dotenv import load_dotenv
 from utils import (
-    extract_text_from_pdf,
-    chunk_text,
-    embed_texts,
-    build_faiss_index,
-    retrieve_chunks,
+    extract_text_from_pdfs,
+    create_vector_store,
+    get_relevant_text,
     generate_questions,
-    generate_question_pdf,
-    generate_answer_pdf,
+    create_pdf,
+    create_zip_file
 )
-import numpy as np
 
-st.set_page_config(page_title="PDF to Quiz Generator", layout="wide", page_icon="📄")
+# Load API key
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-st.title("📄 AI PDF to Quiz Generator with FAISS")
+# Streamlit UI config
+st.set_page_config(page_title="📄 PDF to Quiz Generator", layout="wide")
+st.title("📘 AI PDF to Quiz Generator")
 
-st.sidebar.header("📤 Upload & Settings")
+# Sidebar - Input
+with st.sidebar:
+    st.header("📂 Upload PDFs")
+    uploaded_files = st.file_uploader("Choose one or more PDF files", type="pdf", accept_multiple_files=True)
 
-uploaded_files = st.sidebar.file_uploader(
-    "Upload one or more PDFs", type=["pdf"], accept_multiple_files=True
-)
-num_questions = st.sidebar.slider("Number of Questions", 1, 20, 10)
-question_type = st.sidebar.radio("Question Type", ["MCQ", "Short", "Long"])
-generate_button = st.sidebar.button("🚀 Generate Quiz")
+    st.header("⚙️ Quiz Settings")
+    q_type = st.selectbox("Type of Questions", ["multiple choice", "short answer", "long answer"])
+    num_questions = st.slider("Number of Questions", 1, 20, 10)
+    generate_btn = st.button("🚀 Generate Quiz")
 
-if uploaded_files and generate_button:
-    with st.spinner("Extracting text from PDFs..."):
-        full_text = ""
-        for pdf_file in uploaded_files:
-            full_text += extract_text_from_pdf(pdf_file) + "\n"
+# Main
+if generate_btn and uploaded_files:
+    with st.spinner("🔍 Reading PDFs..."):
+        full_text = extract_text_from_pdfs(uploaded_files)
 
-    with st.spinner("Chunking text and creating embeddings..."):
-        chunks = chunk_text(full_text, max_words=200)
-        embeddings = embed_texts(chunks)
-        index = build_faiss_index(embeddings)
+    with st.spinner("⚙️ Creating vector DB..."):
+        db = create_vector_store(full_text)
 
-    with st.spinner("Retrieving relevant chunks and generating questions..."):
-        # For quiz generation, no specific query; just take top chunks
-        # (or all chunks if small) — here we just join top 5 chunks for prompt
-        relevant_chunks = chunks[:5] if len(chunks) > 5 else chunks
-        context = "\n\n".join(relevant_chunks)
+    with st.spinner("🧠 Generating questions..."):
+        query = f"Generate {num_questions} {q_type} questions"
+        relevant_text = get_relevant_text(db, query)
+        questions, answers = generate_questions(relevant_text, q_type, num_questions)
 
-        questions = generate_questions(context, num_questions=num_questions, question_type=question_type)
+    st.subheader("📋 Questions")
+    st.text(questions)
 
-    st.subheader("📘 Generated Questions")
+    st.subheader("✅ Answers")
+    st.text(answers)
 
-    st.markdown(
-        """
-    <style>
-    .question-box {
-        background-color: #e6f2ff;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
+    q_pdf = create_pdf(questions)
+    a_pdf = create_pdf(answers)
+    zip_data = create_zip_file(q_pdf, a_pdf)
+
+    st.download_button(
+        label="📦 Download ZIP (Questions + Answers)",
+        data=zip_data,
+        file_name="quiz_bundle.zip",
+        mime="application/zip"
     )
 
-    for i, q in enumerate(questions, 1):
-        content = f"<div class='question-box'><b>Q{i}: {q['question']}</b><br>"
-        if q["options"]:
-            content += "<ul>"
-            for opt in q["options"]:
-                content += f"<li>{opt}</li>"
-            content += "</ul>"
-        if q["answer"] and question_type != "MCQ":
-            content += f"<b>Answer:</b> {q['answer']}"
-        content += "</div>"
-        st.markdown(content, unsafe_allow_html=True)
-
-    question_pdf = generate_question_pdf(questions)
-    answer_pdf = generate_answer_pdf(questions)
-
-    st.subheader("📥 Download Options")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.download_button(
-            label="📄 Download Questions PDF",
-            data=question_pdf,
-            file_name="questions.pdf",
-            mime="application/pdf",
-        )
-    with col2:
-        st.download_button(
-            label="✅ Download Answers PDF",
-            data=answer_pdf,
-            file_name="answers.pdf",
-            mime="application/pdf",
-        )
-
-else:
-    st.info("📎 Upload PDFs and click 'Generate Quiz' to start.")
+elif generate_btn:
+    st.warning("⚠️ Please upload at least one PDF file.")
