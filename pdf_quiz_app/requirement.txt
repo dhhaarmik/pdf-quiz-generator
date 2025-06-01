@@ -1,5 +1,6 @@
 streamlit
 openai
-python-dotenv
-PyMuPDF
+PyPDF2
+langchain
+faiss-cpu
 reportlab
