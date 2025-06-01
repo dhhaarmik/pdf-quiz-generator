@@ -4,3 +4,4 @@ PyPDF2
 langchain
 faiss-cpu
 reportlab
+load_dotenv
