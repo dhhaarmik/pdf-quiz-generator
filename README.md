@@ -2,6 +2,9 @@
 
 Generate quizzes automatically from PDF documents using OpenAI embeddings and LangChain with a Streamlit interface.
 
+#Try the app
+https://pdf-quiz-generator-fsc8zyjlknkwp3f2ipy8m6.streamlit.app/
+
 ## 🚀 Features
 
 - Upload one or multiple PDF files
