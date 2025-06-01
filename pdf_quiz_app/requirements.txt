@@ -1,5 +1,5 @@
 streamlit
-openai
+openai>=1.2.3
 tiktoken
 PyPDF2
 langchain==0.0.312
