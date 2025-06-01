@@ -5,3 +5,4 @@ langchain
 faiss-cpu
 reportlab
 load_dotenv
+pymupdf
