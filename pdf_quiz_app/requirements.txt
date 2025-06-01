@@ -1,8 +1,8 @@
 streamlit
 openai
+tiktoken
 PyPDF2
 langchain==0.0.312
 faiss-cpu
 reportlab
-load_dotenv
 pymupdf
