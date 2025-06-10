@@ -105,18 +105,6 @@ if generate_btn:
 
         st.subheader("📥 Downloads")
         st.download_button(
-            label="Download Question Paper (PDF)",
-            data=qp_pdf,
-            file_name="question_paper.pdf",
-            mime="application/pdf"
-        )
-        st.download_button(
-            label="Download Answer Sheet (PDF)",
-            data=answer_pdf,
-            file_name="answer_sheet.pdf",
-            mime="application/pdf"
-        )
-        st.download_button(
             label="Download ZIP (Question Paper + Answer Sheet)",
             data=zip_data,
             file_name="question_paper_bundle.zip",
